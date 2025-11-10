@@ -1,11 +1,23 @@
-// app/layout.tsx
+import './globals.css'
+import Providers from './providers'
 
-import '../app/globals.css';
+export const metadata = {
+    title: 'Non-custodial Rebalancer',
+    description: 'Rebalance your crypto portfolio using SideShift.ai'
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body>{children}</body>
+            <body>
+                <Providers>
+                    <div className="min-h-screen">
+                        <main className="container mx-auto px-4 py-8">
+                            {children}
+                        </main>
+                    </div>
+                </Providers>
+            </body>
         </html>
-    );
+    )
 }

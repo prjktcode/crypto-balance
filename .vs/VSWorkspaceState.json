@@ -2,10 +2,11 @@
   "ExpandedNodes": [
     "",
     "\\app",
-    "\\app\\api",
-    "\\app\\api\\quote",
-    "\\lib"
+    "\\components",
+    "\\lib",
+    "\\types",
+    "\\utils"
   ],
-  "SelectedNode": "\\lib\\sideshift.ts",
+  "SelectedNode": "\\app\\providers.tsx",
   "PreviewInSolutionExplorer": false
 }

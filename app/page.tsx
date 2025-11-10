@@ -1,35 +1,63 @@
-﻿'use client';
+﻿'use client'
 
-import { useState } from 'react';
-import { suggestRebalance } from '../lib/rebalance';
-import { getQuote } from '../lib/sideshift';
+import React, { useEffect, useState } from 'react'
+import WalletStatus from '../components/WalletStatus'
+import Snapshot from '../components/Snapshot'
+import TargetForm from '../components/TargetForm'
+import Suggestions from '../components/Suggestions'
+import { fetchMockBalances, computeAllocation } from '../lib/rebalance'
+import { TokenBalance, TargetAllocation, Suggestion } from '../types'
 
-export default function HomePage() {
-    const [current, setCurrent] = useState({ BTC: 40, ETH: 40, USDC: 20 });
-    const [target, setTarget] = useState({ BTC: 50, ETH: 30, USDC: 20 });
-    const [suggestions, setSuggestions] = useState([]);
+export default function Page() {
+    const [address, setAddress] = useState<string | null>(null)
+    const [balances, setBalances] = useState<TokenBalance[]>([])
+    const [targets, setTargets] = useState<TargetAllocation>({})
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([])
 
-    const handleRebalance = async () => {
-        const rebalance = suggestRebalance(current, target);
-        const quotes = await Promise.all(
-            rebalance.map(s => getQuote(s.from, 'BTC', s.amount))
-        );
-        setSuggestions(quotes);
-    };
+    useEffect(() => {
+        if (!address) return
+        // fetch balances (mocked)
+        fetchMockBalances(address).then(setBalances)
+    }, [address])
+
+    useEffect(() => {
+        if (!balances.length || !Object.keys(targets).length) {
+            setSuggestions([])
+            return
+        }
+        const current = computeAllocation(balances)
+        // use lib function to create suggestions (locally estimated)
+        const { suggestRebalance } = require('../lib/rebalance')
+        const s = suggestRebalance(balances, targets)
+        setSuggestions(s)
+    }, [balances, targets])
 
     return (
-        <main className="p-6">
-            <h1 className="text-2xl font-bold">Portfolio Rebalancer</h1>
-            <button onClick={handleRebalance} className="mt-4 px-4 py-2 bg-blue-500 text-white">
-                Suggest Rebalance
-            </button>
-            <ul className="mt-6">
-                {suggestions.map((q, i) => (
-                    <li key={i}>
-                        Swap {q.depositCoin} → {q.settleCoin} at rate {q.rate}
-                    </li>
-                ))}
-            </ul>
-        </main>
-    );
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">Non-custodial Rebalancer</h1>
+                <WalletStatus onAddressChange={setAddress} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    <Snapshot balances={balances} />
+                    <TargetForm balances={balances} onChange={setTargets} />
+                </div>
+
+                <div>
+                    <Suggestions
+                        suggestions={suggestions}
+                        onExecute={(updated) => {
+                            // refresh balances after shift (in real life you'd re-query on-chain)
+                            if (updated) {
+                                // naive refresh:
+                                if (address) fetchMockBalances(address).then(setBalances)
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+        </div>
+    )
 }

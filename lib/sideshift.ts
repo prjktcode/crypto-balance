@@ -1,44 +1,61 @@
-﻿// lib/sideshift.ts
-type QuoteParams = {
-    depositCoin: "BTC";
-    depositNetwork: "bitcoin";
-    settleCoin: "USDT";
-    settleNetwork: "arbitrum";
-    depositAmount: "0.000001";
-    userIp: string;
-};
+﻿import axios from 'axios'
 
-export async function getQuote({
-    depositCoin,
-    depositNetwork,
-    settleCoin,
-    settleNetwork,
-    depositAmount,
-    userIp,
-}: QuoteParams) {
-    const res = await fetch("/api/quotes", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            'API-Key': process.env.SIDESHIFT_SECRET!,
-},
-        body: JSON.stringify({
-            depositCoin,
-            depositNetwork,
-            settleCoin,
-            settleNetwork,
-            depositAmount,
-            userIp,
-        }),
-    });
+const SIDESHIFT_BASE = 'https://sideshift.ai/v2'
 
-    if (!res.ok) {
-        const err = await res.json();
-        console.error("❌ Quote API route error:", err);
-        throw new Error("Failed to fetch quote");
+export type SideshiftQuoteRequest = {
+    depositCoin: string
+    depositNetwork: string
+    settleCoin: string
+    settleNetwork: string
+    depositAmount: string
+    affiliateId?: string
+}
+
+/**
+ * Request a quote from Sideshift.ai server-side.
+ * This function is intended to be used from server (Next.js route handlers).
+ */
+export async function getQuote(payload: SideshiftQuoteRequest, userIp: string) {
+    const secret = process.env.SIDESHIFT_SECRET
+    if (!secret) {
+        throw new Error('SIDESHIFT_SECRET not configured in env')
+    }
+    const body = {
+        depositCoin: payload.depositCoin,
+        depositNetwork: payload.depositNetwork,
+        settleCoin: payload.settleCoin,
+        settleNetwork: payload.settleNetwork,
+        depositAmount: payload.depositAmount,
+        affiliateId: payload.affiliateId || process.env.SIDESHIFT_AFFILIATE_ID || undefined
     }
 
-    const data = await res.json();
-    console.log("✅ Quote received:", data);
-    return data;
+    const resp = await axios.post(`${SIDESHIFT_BASE}/quotes`, body, {
+        headers: {
+            'Content-Type': 'application/json',
+            'x-sideshift-secret': secret,
+            'x-user-ip': userIp || ''
+        },
+        timeout: 15000
+    })
+    return resp.data
+}
+
+/**
+ * Create a shift (execute swap) via SideShift /v2/shifts
+ */
+export async function createShift(payload: any, userIp: string) {
+    const secret = process.env.SIDESHIFT_SECRET
+    if (!secret) {
+        throw new Error('SIDESHIFT_SECRET not configured in env')
+    }
+
+    const resp = await axios.post(`${SIDESHIFT_BASE}/shifts`, payload, {
+        headers: {
+            'Content-Type': 'application/json',
+            'x-sideshift-secret': secret,
+            'x-user-ip': userIp || ''
+        },
+        timeout: 20000
+    })
+    return resp.data
 }

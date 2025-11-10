@@ -4,30 +4,30 @@ import { getQuote } from "../../../lib/sideshift"; // your existing function (bu
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const { depositCoin, depositNetwork, settleCoin, settleNetwork, depositAmount } = body;
+        const json = await req.json()
+        const userIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || ''
 
-        // Get real user IP (adjust based on your hosting)
-        const userIp = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-            req.headers.get("x-real-ip") ||
-            "212.103.48.92";
+        // Validate required fields
+        const required = ['depositCoin', 'depositNetwork', 'settleCoin', 'settleNetwork', 'depositAmount']
+        for (const f of required) {
+            if (!json[f]) {
+                return Response.json({ error: `Missing field ${f}` }, { status: 400 })
+            }
+        }
 
-        // Ensure your getQuote() uses process.env for secrets!
-        const quote = await getQuote({
-            depositCoin,
-            depositNetwork,
-            settleCoin,
-            settleNetwork,
-            depositAmount,
-            userIp,
-        });
+        const payload = {
+            depositCoin: json.depositCoin,
+            depositNetwork: json.depositNetwork,
+            settleCoin: json.settleCoin,
+            settleNetwork: json.settleNetwork,
+            depositAmount: String(json.depositAmount),
+            affiliateId: process.env.SIDESHIFT_AFFILIATE_ID || undefined
+        }
 
-        return Response.json(quote);
-    } catch (error: any) {
-        console.error("API Route Error:", error.response?.data || error.message);
-        return Response.json(
-            { error: "Failed to fetch quote", details: error.response?.data },
-            { status: error.response?.status || 500 }
-        );
+        const resp = await getQuote(payload, userIp)
+        return Response.json({ data: resp }, { status: 200 })
+    } catch (err: any) {
+        console.error('Quote error', err?.message || err)
+        return Response.json({ error: err?.message || 'unknown' }, { status: 500 })
     }
 }
