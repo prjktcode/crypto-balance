@@ -33,10 +33,10 @@ export default function TargetForm({
 
     return (
         <section className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium mb-4">Target Allocation</h3>
+            <h3 className="text-lg text-blue-900 font-medium mb-4">Target Allocation</h3>
             <div className="space-y-3">
                 {balances.map((b) => (
-                    <div key={b.symbol} className="flex items-center gap-3">
+                    <div key={b.symbol} className="text-gray-800 flex items-center gap-3 ">
                         <div className="w-20">{b.symbol}</div>
                         <input
                             type="number"
@@ -44,13 +44,13 @@ export default function TargetForm({
                             max={100}
                             value={targets[b.symbol] ?? 0}
                             onChange={(e) => update(b.symbol, e.target.value)}
-                            className="input input-bordered px-3 py-2 border rounded w-full"
+                            className="text-gray-800 input input-bordered px-3 py-2 border rounded w-full"
                         />
-                        <div className="w-20 text-sm text-black-500">%</div>
+                        <div className="w-20 text-sm text-blue-900">%</div>
                     </div>
                 ))}
             </div>
-            <div className="mt-4 text-sm text-black-500">Make sure allocations add up to 100% (not enforced).</div>
+            <div className="mt-4 text-sm text-blue-900">Make sure allocations add up to 100% (not enforced).</div>
         </section>
     )
 }

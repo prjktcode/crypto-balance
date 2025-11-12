@@ -72,8 +72,8 @@ export default function Suggestions({
     if (!suggestions.length) {
         return (
             <section className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium mb-2">Suggestions</h3>
-                <div className="text-sm text-gray-500">No suggestions — set target allocation to see recommendations.</div>
+                <h3 className="text-lg text-gray-900 font-medium mb-2">Suggestions</h3>
+                <div className="text-sm text-gray-900">No suggestions — set target allocation to see recommendations.</div>
             </section>
         )
     }

@@ -1,8 +1,8 @@
-import './globals.css'
+﻿import './globals.css'
 import Providers from './providers'
 
 export const metadata = {
-    title: 'Non-custodial Rebalancer',
+    title: 'Crypto - Balance',
     description: 'Rebalance your crypto portfolio using SideShift.ai'
 }
 

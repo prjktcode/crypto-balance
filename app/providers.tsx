@@ -1,63 +1,110 @@
-'use client'
+﻿'use client'
 
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import '@rainbow-me/rainbowkit/styles.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { WagmiConfig, WagmiProvider } from 'wagmi'
+import { WagmiConfig, WagmiProvider, createConfig } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { http } from 'viem'
 
 /**
- * Providers - updated for RainbowKit v2 + Wagmi v2 migration
+ * Client-only Providers that safely dynamic-imports RainbowKit/getDefaultConfig
+ * to avoid executing WalletConnect code during SSR (which triggers the
+ * String.repeat(-1) error in server chunks).
  *
- * - Uses getDefaultConfig from @rainbow-me/rainbowkit (recommended migration path).
- * - Provides a QueryClientProvider (required peer for Wagmi v2).
- * - Wraps app with WagmiConfig and WagmiProvider (follow migration examples).
- * - Uses viem http transport for RPC and passes a WalletConnect projectId.
+ * Behavior:
+ * - During SSR nothing that references @rainbow-me/rainbowkit is imported.
+ * - On the client we dynamically import getDefaultConfig and RainbowKitProvider,
+ *   create the config, then render the full providers tree.
  *
- * Env:
- * - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (recommended)
- * - NEXT_PUBLIC_MAINNET_RPC (recommended)
- * - NEXT_PUBLIC_APP_NAME
+ * Note: until the config is ready we render a small loader; this prevents
+ * components using wagmi hooks from running before the provider is mounted.
  */
 
 const queryClient = new QueryClient()
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-    // Chains: keep simple for demo; you can add more chains here.
     const chains = useMemo(() => [mainnet], [])
 
-    // Public config values (safe to expose)
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'RebalancerDemo'
-    const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'cbfc2f1f409ef732b20ba6e538d4ef11'
+    const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '16639b26dbf4e22ecaf475186aae113f'
     const rpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC || 'https://eth.drpc.org'
 
-    // Build the RainbowKit/Wagmi config using the new helper
-    const config = useMemo(
-        () =>
-            getDefaultConfig({
-                appName,
-                projectId,
-                chains,
-                // Provide viem transports per-chain. You can add additional chains/transports here.
-                transports: {
-                    [mainnet.id]: http(rpcUrl)
-                },
-                // Optional: pass custom wallet list via `wallets` if you want to override defaults
-                // wallets: [...]
-            }),
-        [appName, projectId, chains, rpcUrl]
-    )
+    // local state to hold client-only imports and built config
+    const [clientReady, setClientReady] = useState(false)
+    const [RainbowKitProvider, setRainbowKitProvider] = useState<any | null>(null)
+    const [config, setConfig] = useState<any | null>(null)
+
+    useEffect(() => {
+        let mounted = true
+
+            // Dynamic import only on the client — avoids SSR evaluation of walletconnect core
+            ; (async () => {
+                try {
+                    const rk = await import('@rainbow-me/rainbowkit')
+                    // Prefer getDefaultConfig (RainbowKit helper). Falls back to createConfig if needed.
+                    const getDefaultConfig = rk.getDefaultConfig as any
+                    let builtConfig: any
+
+                    if (typeof getDefaultConfig === 'function') {
+                        builtConfig = getDefaultConfig({
+                            appName,
+                            projectId,
+                            chains,
+                            transports: {
+                                [mainnet.id]: http(rpcUrl)
+                            }
+                        })
+                    } else {
+                        // Fallback: create basic wagmi config (safer fallback)
+                        builtConfig = createConfig({
+                            connectors: [], // connectors will be filled by RainbowKit if needed
+                            transports: {
+                                [mainnet.id]: http(rpcUrl)
+                            }
+                        })
+                    }
+
+                    if (!mounted) return
+
+                    setRainbowKitProvider(() => rk.RainbowKitProvider)
+                    setConfig(builtConfig)
+                    setClientReady(true)
+                } catch (err) {
+                    // If dynamic import fails, log and keep the app from attempting wallet hooks.
+                    // Client will show the fallback UI and you can inspect console for errors.
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to load RainbowKit dynamically', err)
+                    setClientReady(false)
+                }
+            })()
+
+        return () => {
+            mounted = false
+        }
+        // Only run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Loading / fallback UI while we wait for client-only config to be ready.
+    // Important: do NOT render children that use wagmi hooks until config exists.
+    if (!clientReady || !config || !RainbowKitProvider) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="p-4 rounded bg-white shadow text-sm text-gray-900">Loading wallet providers...</div>
+            </div>
+        )
+    }
+
+    const RKProvider = RainbowKitProvider
 
     return (
-        // WagmiConfig and WagmiProvider are both shown in the migration docs; include both
         <WagmiConfig config={config}>
             <WagmiProvider config={config} reconnectOnMount={true}>
                 <QueryClientProvider client={queryClient}>
-                    <RainbowKitProvider>
+                    <RKProvider>
                         {children}
-                    </RainbowKitProvider>
+                    </RKProvider>
                 </QueryClientProvider>
             </WagmiProvider>
         </WagmiConfig>
