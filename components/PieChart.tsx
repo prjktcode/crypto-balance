@@ -1,33 +1,45 @@
-﻿'use client'
+﻿// .components/PieChart.tsx
 
-import React, { useEffect, useState } from 'react'
-import { Chart, ArcElement, Tooltip, Legend } from 'chart.js'
+'use client'
+
+import React from 'react'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
 import { Allocation } from '../types'
 
+// Register required elements/controllers once at module scope
+ChartJS.register(ArcElement, Tooltip, Legend)
+
 export default function PieChart({ data }: { data?: Allocation[] }) {
-    const [isRegistered, setIsRegistered] = useState(false)
+    const hasData = Array.isArray(data) && data.length > 0
 
-    useEffect(() => {
-        if (!isRegistered) {
-            Chart.register(ArcElement, Tooltip, Legend)
-            setIsRegistered(true)
-        }
-    }, [isRegistered])
-
-    // don't render until both registration and wallet data are ready
-    if (!isRegistered || !data || data.length === 0) return null
+    const labels = hasData ? data!.map((d) => d.symbol) : ['']
+    const datasetValues = hasData ? data!.map((d) => d.usdValue) : [1]
+    const colors = hasData
+        ? ['#f97316', '#6366f1', '#10b981', '#f43f5e', '#06b6d4']
+        : ['rgba(148, 163, 184, 0.15)'] // subtle gray placeholder
 
     const chartData = {
-        labels: data.map((d) => d.symbol),
+        labels,
         datasets: [
             {
-                data: data.map((d) => d.usdValue),
-                backgroundColor: ['#f97316', '#6366f1', '#10b981', '#f43f5e', '#06b6d4'],
-                hoverOffset: 8,
+                data: datasetValues,
+                backgroundColor: colors,
+                borderWidth: 0,
+                hoverOffset: hasData ? 8 : 0,
             },
         ],
     }
 
-    return <Doughnut data={chartData} />
+    const options = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: hasData },
+            tooltip: { enabled: hasData },
+        },
+    }
+
+    // Always render a chart; when no data we show a neutral placeholder donut
+    return <Doughnut data={chartData} options={options} />
 }

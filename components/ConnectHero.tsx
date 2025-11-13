@@ -1,4 +1,5 @@
-﻿'use client'
+﻿//. components/ConnectHero.tsx
+'use client'
 
 import React, { useEffect } from 'react'
 import dynamic from 'next/dynamic'

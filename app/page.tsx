@@ -1,6 +1,7 @@
-﻿import './globals.css'
+﻿//.app/page.tsx
+
+import './globals.css'
 import ConnectHero from '../components/ConnectHero'
-import AISuggestions from '../components/AISuggestions'
 
 export const metadata = {
     title: 'Crypto Balance — Intelligent Rebalancer',
@@ -60,7 +61,7 @@ export default function Home() {
                                 href="/dashboard"
                                 className="px-4 py-2 inline-flex items-center gap-2 rounded-md border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
                             >
-                                View dashboard (demo)
+                                View Portfolio
                             </a>
                         </div>
                     </div>
@@ -82,29 +83,9 @@ export default function Home() {
                     </div>
                 </section>
 
-                <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-                        <h3 className="text-lg font-medium mb-4">AI Suggestions</h3>
-                        <AISuggestions />
-                    </div>
-
-                    <aside className="bg-white rounded-lg shadow p-6">
-                        <h4 className="text-sm font-medium text-slate-700 mb-2">How AI helps</h4>
-                        <ul className="text-sm text-slate-600 space-y-2">
-                            <li>- Explain why assets are overweight / underweight</li>
-                            <li>- Recommend swap ordering to save gas and reduce slippage</li>
-                            <li>- Provide a plain-language rationale for allocations</li>
-                        </ul>
-
-                        <div className="mt-6 text-xs text-slate-500">
-                            AI suggestions are informational only. Always validate quotes, addresses and slippage before executing swaps.
-                        </div>
-                    </aside>
-                </section>
-
                 <section className="bg-white rounded-lg shadow p-8">
-                    <h3 className="text-lg font-medium">Get started</h3>
-                    <div className="mt-4 text-slate-600">
+                    <h3 className="text-lg text-blue-600 font-medium">Get started</h3>
+                    <div className="mt-4 text-slate-900">
                         Connect your wallet, set target allocations on the dashboard, and request swap quotes. Use "Rebalance Now" to
                         create SideShift shifts (affiliate monetization supported).
                     </div>
@@ -112,7 +93,7 @@ export default function Home() {
             </main>
 
             <footer className="py-8 border-t border-slate-100">
-                <div className="container mx-auto px-6 flex items-center justify-between text-sm text-slate-500">
+                <div className="container mx-auto px-6 flex items-center justify-between text-sm text-slate-800">
                     <div>© {new Date().getFullYear()} Crypto Balance</div>
                     <div>
                         <a href="https://sideshift.ai" target="_blank" rel="noreferrer" className="hover:underline">Powered by SideShift</a>

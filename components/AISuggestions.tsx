@@ -62,7 +62,7 @@ export default function AISuggestions() {
                             'Provide a short, plain-language summary (3–4 bullets) explaining why one might rebalance from ETH to USDC.'
                         )
                     }
-                    className="px-3 py-1 border rounded text-sm"
+                    className="px-3 py-1 border rounded text gray 800 text-sm"
                 >
                     Quick prompt
                 </button>
@@ -71,11 +71,11 @@ export default function AISuggestions() {
             {error && <div className="text-red-600 text-sm">{error}</div>}
 
             {result && (
-                <div className="mt-4 bg-slate-50 p-4 rounded border">
+                <div className="mt-4 bg-slate-800 p-4 rounded border">
                     <h4 className="text-sm font-medium mb-2">AI response</h4>
                     <div className="prose max-w-none text-sm whitespace-pre-wrap">{result.text}</div>
 
-                    <details className="mt-3 text-xs text-slate-500">
+                    <details className="mt-3 text-xs text-slate-800">
                         <summary>Raw response</summary>
                         <pre className="mt-2 max-h-48 overflow-auto text-xs">{JSON.stringify(result.raw, null, 2)}</pre>
                     </details>

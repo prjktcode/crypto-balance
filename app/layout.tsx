@@ -1,4 +1,6 @@
-﻿import './globals.css'
+﻿// .app/layout.tsx
+
+import './globals.css'
 import Providers from './providers'
 
 export const metadata = {

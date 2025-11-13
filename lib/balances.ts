@@ -1,14 +1,14 @@
 ﻿'use client'
 
 import axios from 'axios'
-import { usePublicClient } from 'wagmi'
-import { formatUnits } from 'viem'
+import { formatUnits, createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
 import type { TokenBalance } from '../types'
 import { KNOWN_TOKENS } from './tokens'
 
 /**
  * Fetch on-chain balances for a wallet address (ETH + selected ERC-20 tokens)
- * - Uses wagmi's public client (viem) configured in your Providers
+ * - Uses a local viem PublicClient (configured with mainnet + RPC) — no React hooks here.
  * - Uses CoinGecko for USD prices
  *
  * Returns TokenBalance[] with fields:
@@ -19,11 +19,15 @@ import { KNOWN_TOKENS } from './tokens'
  * - Only supports EVM tokens on chainId === 1 (Ethereum mainnet) for CoinGecko token_price path.
  * - CoinGecko rate limits apply; consider caching on server for production.
  */
-export async function fetchOnChainBalances(address: string): Promise<TokenBalance[]> {
+export async function fetchOnChainBalances(address: `0x${string}`): Promise<TokenBalance[]> {
     if (!address) return []
 
-    const publicClient = usePublicClient()
-    if (!publicClient) throw new Error('Public client not available — ensure Providers are mounted')
+    // Build a standalone public client (no React hooks)
+    const rpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC || 'https://eth.drpc.org'
+    const publicClient = createPublicClient({
+        chain: mainnet,
+        transport: http(rpcUrl)
+    })
 
     // 1) Fetch native balance (ETH)
     const nativeToken = KNOWN_TOKENS.find((t) => t.symbol === 'ETH' && t.chainId === 1)
@@ -35,7 +39,7 @@ export async function fetchOnChainBalances(address: string): Promise<TokenBalanc
     const erc20Promises = erc20Tokens.map(async (t) => {
         try {
             const balanceBn = await publicClient.readContract({
-                address: t.address,
+                address: t.address as `0x${string}`,
                 abi: [
                     {
                         name: 'balanceOf',
@@ -50,7 +54,7 @@ export async function fetchOnChainBalances(address: string): Promise<TokenBalanc
             })
             const bal = Number(formatUnits(balanceBn as bigint, t.decimals))
             return { ...t, balance: bal }
-        } catch (err) {
+        } catch {
             // If reading fails, return 0 balance for this token
             return { ...t, balance: 0 }
         }
@@ -58,15 +62,13 @@ export async function fetchOnChainBalances(address: string): Promise<TokenBalanc
     const erc20Results = await Promise.all(erc20Promises)
 
     // 3) Fetch USD prices from CoinGecko
-    // - Native ETH price via /simple/price
-    // - ERC20 token prices via /simple/token_price/ethereum using contract addresses
     let ethPriceUSD = 0
     try {
         const r = await axios.get(
             `https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`
         )
         ethPriceUSD = r?.data?.ethereum?.usd ?? 0
-    } catch (err) {
+    } catch {
         ethPriceUSD = 0
     }
 
@@ -79,7 +81,7 @@ export async function fetchOnChainBalances(address: string): Promise<TokenBalanc
                 `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${contractAddresses}&vs_currencies=usd`
             )
             tokenPrices = r?.data ?? {}
-        } catch (err) {
+        } catch {
             tokenPrices = {}
         }
     }

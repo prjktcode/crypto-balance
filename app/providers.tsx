@@ -1,9 +1,11 @@
-﻿'use client'
+﻿//.app/providers.tsx
+
+'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
 import '@rainbow-me/rainbowkit/styles.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { WagmiConfig, WagmiProvider, createConfig } from 'wagmi'
+import { WagmiProvider, createConfig } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { http } from 'viem'
 
@@ -99,14 +101,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const RKProvider = RainbowKitProvider
 
     return (
-        <WagmiConfig config={config}>
-            <WagmiProvider config={config} reconnectOnMount={true}>
-                <QueryClientProvider client={queryClient}>
-                    <RKProvider>
-                        {children}
-                    </RKProvider>
-                </QueryClientProvider>
-            </WagmiProvider>
-        </WagmiConfig>
+        <WagmiProvider config={config}>
+            <QueryClientProvider client={queryClient}>
+                <RKProvider>
+                    {children}
+                </RKProvider>
+            </QueryClientProvider>
+        </WagmiProvider>
     )
 }

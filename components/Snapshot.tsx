@@ -1,3 +1,5 @@
+﻿// .components/Snapshot.tsx
+
 'use client'
 
 import React from 'react'
@@ -8,8 +10,23 @@ import dynamic from 'next/dynamic'
 const PieChart = dynamic(() => import('./PieChart'), { ssr: false })
 
 export default function Snapshot({ balances }: { balances: TokenBalance[] }) {
-    const allocations = computeAllocation(balances)
+    // Compute allocations and sanitize numbers to guarantee a structured shape.
+    const rawAllocations = computeAllocation(balances)
+
+    const allocations = rawAllocations
+        .map((a) => ({
+            symbol: a.symbol,
+            usdValue: Number.isFinite(a.usdValue) ? a.usdValue : 0,
+            percent: Number.isFinite(a.percent) ? a.percent : 0,
+        }))
+        // keep all entries; percent may be 0 when total is 0 (safe)
+        // but ensure numbers are finite
+        .filter((a) => Number.isFinite(a.usdValue) && Number.isFinite(a.percent))
+
     const total = allocations.reduce((s, a) => s + a.usdValue, 0)
+
+    // If total is not positive, pass undefined to PieChart to render the empty placeholder donut.
+    const chartData = total > 0 ? allocations : undefined
 
     return (
         <section className="bg-white rounded-lg shadow p-6">
@@ -30,11 +47,14 @@ export default function Snapshot({ balances }: { balances: TokenBalance[] }) {
                                 <div className="text-sm text-gray-800">{a.percent.toFixed(2)}%</div>
                             </li>
                         ))}
+                        {allocations.length === 0 && (
+                            <li className="text-sm text-gray-500">No assets yet. Connect your wallet to populate balances.</li>
+                        )}
                     </ul>
                 </div>
 
                 <div className="w-48 h-48">
-                    <PieChart data={allocations} />
+                    <PieChart data={chartData} />
                 </div>
             </div>
         </section>
